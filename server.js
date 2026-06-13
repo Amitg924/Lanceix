@@ -1050,3 +1050,130 @@ app.get("/submit-feedback", function (req, resp) {
         }
     );
 });
+// =========================================================================================
+ // ============================================================
+// AMIT'S 300-DAY JOURNEY TRACKER ROUTES
+// Add these routes in Lanceix server.js
+// Temporary: will shift to SkillMap AI later
+// ============================================================
+
+// CORS header — allow portfolio widget to call this API
+app.use(function(req, resp, next) {
+    resp.header("Access-Control-Allow-Origin", "*");
+    resp.header("Access-Control-Allow-Headers", "Content-Type");
+    next();
+});
+
+// ------------------------------------------------------------
+// POST /save-journey-entry — save daily entry
+// ------------------------------------------------------------
+app.post("/save-journey-entry", function(req, resp) {
+    let day_number  = req.body.day_number;
+    let entry_date  = req.body.entry_date;
+    let energy      = req.body.energy || "average";
+    let physical    = JSON.stringify(req.body.physical || []);
+    let mental      = JSON.stringify(req.body.mental   || []);
+    let work        = JSON.stringify(req.body.work     || []);
+    let dsa_count   = parseInt(req.body.dsa_count)     || 0;
+    let tasks_done  = req.body.tasks_done  || "";
+    let task_missed = req.body.task_missed || "";
+    let insight     = req.body.insight     || "";
+    let mit         = req.body.mit         || "";
+    let sleep_time  = req.body.sleep_time  || "";
+    let water_intake= parseFloat(req.body.water_intake)|| 0;
+    let score       = parseInt(req.body.score)         || 0;
+
+    // INSERT or UPDATE if same date entry already exists
+    mySqlVen.query(
+        `INSERT INTO journey_entries 
+         (day_number, entry_date, energy, physical, mental, work, dsa_count, tasks_done, task_missed, insight, mit, sleep_time, water_intake, score)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE
+         energy=VALUES(energy), physical=VALUES(physical), mental=VALUES(mental),
+         work=VALUES(work), dsa_count=VALUES(dsa_count), tasks_done=VALUES(tasks_done),
+         task_missed=VALUES(task_missed), insight=VALUES(insight), mit=VALUES(mit),
+         sleep_time=VALUES(sleep_time), water_intake=VALUES(water_intake), score=VALUES(score)`,
+        [day_number, entry_date, energy, physical, mental, work, dsa_count, tasks_done, task_missed, insight, mit, sleep_time, water_intake, score],
+        function(errKuch, result) {
+            if (errKuch == null)
+                resp.json({ status: "success", message: "Entry saved!" });
+            else
+                resp.json({ status: "error", message: errKuch.message });
+        }
+    );
+});
+
+// ------------------------------------------------------------
+// GET /get-journey-entries — fetch all entries
+// ------------------------------------------------------------
+app.get("/get-journey-entries", function(req, resp) {
+    mySqlVen.query(
+        "SELECT * FROM journey_entries ORDER BY entry_date ASC",
+        function(err, allRecords) {
+            if (err) {
+                resp.json({ status: "error", message: err.message });
+            } else {
+                // Parse JSON fields back to arrays
+                let parsed = allRecords.map(function(e) {
+                    return {
+                        ...e,
+                        physical: typeof e.physical === "string" ? JSON.parse(e.physical) : e.physical,
+                        mental:   typeof e.mental   === "string" ? JSON.parse(e.mental)   : e.mental,
+                        work:     typeof e.work     === "string" ? JSON.parse(e.work)     : e.work
+                    };
+                });
+                resp.json({ status: "success", data: parsed });
+            }
+        }
+    );
+});
+
+// ------------------------------------------------------------
+// GET /get-journey-stats — streak, total DSA, avg score
+// ------------------------------------------------------------
+app.get("/get-journey-stats", function(req, resp) {
+    mySqlVen.query(
+        `SELECT 
+            COUNT(*) AS total_days_logged,
+            SUM(dsa_count) AS total_dsa,
+            ROUND(AVG(score), 0) AS avg_score,
+            MAX(score) AS best_score,
+            MAX(day_number) AS latest_day
+         FROM journey_entries`,
+        function(err, stats) {
+            if (err) {
+                resp.json({ status: "error", message: err.message });
+            } else {
+                // Calculate current streak
+                mySqlVen.query(
+                    "SELECT entry_date FROM journey_entries ORDER BY entry_date DESC",
+                    function(err2, dates) {
+                        let streak = 0;
+                        if (!err2 && dates.length > 0) {
+                            let today = new Date();
+                            today.setHours(0,0,0,0);
+                            for (let i = 0; i < dates.length; i++) {
+                                let entryDate = new Date(dates[i].entry_date);
+                                entryDate.setHours(0,0,0,0);
+                                let diff = Math.floor((today - entryDate) / (1000*60*60*24));
+                                if (diff === i) streak++;
+                                else break;
+                            }
+                        }
+                        resp.json({
+                            status: "success",
+                            data: {
+                                ...stats[0],
+                                current_streak: streak
+                            }
+                        });
+                    }
+                );
+            }
+        }
+    );
+});
+
+// ============================================================
+// END OF JOURNEY ROUTES
+// ============================================================
