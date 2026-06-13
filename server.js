@@ -1050,8 +1050,7 @@ app.get("/submit-feedback", function (req, resp) {
         }
     );
 });
-// =========================================================================================
- // ============================================================
+// ============================================================
 // AMIT'S 300-DAY JOURNEY TRACKER ROUTES
 // Add these routes in Lanceix server.js
 // Temporary: will shift to SkillMap AI later
@@ -1172,6 +1171,256 @@ app.get("/get-journey-stats", function(req, resp) {
             }
         }
     );
+});
+// ===================== MISSIONS =====================
+
+app.get("/api/missions", async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "SELECT * FROM missions ORDER BY created_at DESC"
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch missions" });
+    }
+});
+
+app.post("/api/missions", async (req, res) => {
+    try {
+        const { title, description, target_date } = req.body;
+
+        await db.query(
+            `INSERT INTO missions(title,description,target_date)
+             VALUES(?,?,?)`,
+            [title, description, target_date]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to add mission" });
+    }
+});
+// ===================== STUDENTS =====================
+
+app.get("/api/students", async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "SELECT * FROM students ORDER BY id DESC"
+        );
+
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch students" });
+    }
+});
+
+app.post("/api/students", async (req, res) => {
+    try {
+        const {
+            name,
+            email,
+            phone,
+            progress,
+            attendance,
+            notes
+        } = req.body;
+
+        await db.query(
+            `INSERT INTO students
+            (name,email,phone,progress,attendance,notes)
+            VALUES (?,?,?,?,?,?)`,
+            [
+                name,
+                email,
+                phone,
+                progress || 0,
+                attendance || 0,
+                notes || ""
+            ]
+        );
+
+        res.json({
+            success: true,
+            message: "Student Added"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: "Failed to add student"
+        });
+    }
+});
+// ===================== IDEA VAULT =====================
+
+app.get("/api/ideas", async (req, res) => {
+    try {
+
+        const [rows] = await db.query(
+            "SELECT * FROM idea_vault ORDER BY created_at DESC"
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: "Failed to fetch ideas"
+        });
+    }
+});
+
+app.post("/api/ideas", async (req, res) => {
+
+    try {
+
+        const {
+            title,
+            description,
+            priority,
+            status
+        } = req.body;
+
+        await db.query(
+            `INSERT INTO idea_vault
+            (title,description,priority,status)
+            VALUES (?,?,?,?)`,
+            [
+                title,
+                description,
+                priority || "medium",
+                status || "parking"
+            ]
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: "Failed to save idea"
+        });
+    }
+});
+
+// ===================== ROADMAP =====================
+
+app.get("/api/roadmap", async (req, res) => {
+
+    try {
+
+        const [rows] = await db.query(
+            "SELECT * FROM roadmap_tasks ORDER BY id ASC"
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: "Failed to fetch roadmap"
+        });
+    }
+});
+
+app.post("/api/roadmap", async (req, res) => {
+
+    try {
+
+        const {
+            phase,
+            task_name
+        } = req.body;
+
+        await db.query(
+            `INSERT INTO roadmap_tasks
+            (phase,task_name)
+            VALUES (?,?)`,
+            [phase, task_name]
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: "Failed to add roadmap task"
+        });
+    }
+});
+
+// ===================== CODING PROFILES =====================
+
+app.get("/api/coding-profiles", async (req, res) => {
+
+    try {
+
+        const [rows] = await db.query(
+            "SELECT * FROM coding_profiles"
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: "Failed to fetch profiles"
+        });
+    }
+});
+
+app.post("/api/coding-profiles", async (req, res) => {
+
+    try {
+
+        const {
+            platform,
+            username,
+            solved,
+            rating,
+            streak
+        } = req.body;
+
+        await db.query(
+            `INSERT INTO coding_profiles
+            (platform,username,solved,rating,streak)
+            VALUES (?,?,?,?,?)`,
+            [
+                platform,
+                username,
+                solved || 0,
+                rating || 0,
+                streak || 0
+            ]
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: "Failed to save profile"
+        });
+    }
 });
 
 // ============================================================
